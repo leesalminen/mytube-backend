@@ -284,6 +284,7 @@ async function ensureFreeTrialEntitlement(npub: string, now: Date) {
   const expiresAt = new Date(now.getTime() + durationMs);
 
   if (!existing) {
+    await ensureUserExists(npub);
     return prisma.entitlement.create({
       data: {
         id: trialId,
