@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
+import { nip19 } from 'nostr-tools';
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import { randomBytes } from 'crypto';
@@ -89,6 +90,28 @@ export async function buildServer(): Promise<BuildResult> {
       quota_bytes: entitlement?.quotaBytes?.toString() ?? '0',
       used_bytes: usage?.storedBytes?.toString() ?? '0'
     };
+  });
+
+  app.get('/safety/moderator-key', async (req, reply) => {
+    requireAuth(req);
+
+    let configuredNpub = env.moderation.moderatorNpub?.toLowerCase();
+    const hex = env.moderation.moderatorPublicKey?.toLowerCase();
+
+    if (!configuredNpub && hex) {
+      try {
+        configuredNpub = nip19.npubEncode(hex).toLowerCase();
+      } catch {
+        // fall through to error below
+      }
+    }
+
+    if (!configuredNpub) {
+      throw app.httpErrors.internalServerError('Moderator key not configured');
+    }
+
+    reply.header('Cache-Control', 'public, max-age=3600');
+    return { npub: configuredNpub };
   });
 
   interface PresignUploadBody {

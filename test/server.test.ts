@@ -234,3 +234,56 @@ describe('free trial mode', () => {
     expect(ent?.status).toBe('active');
   });
 });
+
+describe('moderator-key endpoint', () => {
+  let modApp: typeof app;
+  let modCleanup: NodeJS.Timeout;
+  let previousModeratorNpub: string | undefined;
+  let previousModeratorNpubEnv: string | undefined;
+
+  beforeAll(async () => {
+    previousModeratorNpub = runtimeEnv.moderation?.moderatorNpub;
+    previousModeratorNpubEnv = process.env.MODERATOR_NPUB;
+
+    runtimeEnv.moderation.moderatorNpub = expectedNpub;
+    process.env.MODERATOR_NPUB = expectedNpub;
+
+    const built = await buildServer();
+    modApp = built.app;
+    modCleanup = built.cleanupInterval;
+  });
+
+  afterAll(async () => {
+    clearInterval(modCleanup);
+    await modApp.close();
+
+    runtimeEnv.moderation.moderatorNpub = previousModeratorNpub;
+
+    if (previousModeratorNpubEnv === undefined) {
+      delete process.env.MODERATOR_NPUB;
+    } else {
+      process.env.MODERATOR_NPUB = previousModeratorNpubEnv;
+    }
+  });
+
+  it('requires auth', async () => {
+    const res = await modApp.inject({ method: 'GET', url: '/safety/moderator-key' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns moderator npub and cache header', async () => {
+    const authHeader = await getAuthHeader('GET', '/safety/moderator-key', modApp);
+    const res = await modApp.inject({
+      method: 'GET',
+      url: '/safety/moderator-key',
+      headers: { authorization: authHeader }
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { npub: string };
+    expect(body.npub).toBe(expectedNpub.toLowerCase());
+
+    const cache = res.headers['cache-control'] || res.headers['Cache-Control'];
+    expect(cache).toBe('public, max-age=3600');
+  });
+});

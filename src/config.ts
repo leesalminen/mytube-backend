@@ -44,5 +44,9 @@ export const env = {
     projectId: process.env.GOOGLE_PROJECT_ID,
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
     privateKey: process.env.GOOGLE_PRIVATE_KEY_BASE64 ? Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, 'base64').toString('utf8') : undefined
+  },
+  moderation: {
+    moderatorNpub: process.env.MODERATOR_NPUB,
+    moderatorPublicKey: process.env.MODERATOR_PUBLIC_KEY
   }
 };
