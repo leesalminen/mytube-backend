@@ -148,9 +148,6 @@ export async function buildServer(): Promise<BuildResult> {
     if (!key) {
       throw app.httpErrors.badRequest('key is required');
     }
-    if (!key.startsWith(`videos/${req.npub}/`)) {
-      throw app.httpErrors.forbidden('Object does not belong to requester');
-    }
 
     return s3PresignDownload({ key });
   });
